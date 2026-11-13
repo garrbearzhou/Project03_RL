@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyCharm / editors
+.idea/
+.vscode/
+
+# macOS
+.DS_Store
+
+# Old Q-tables from earlier versions of the game (they no longer match the current state/actions).
+# KEEP q_table_items.pkl and q_table_items_noportal.pkl: the assignment asks for companion data files.
+q_table.pkl
+q_table_curves.pkl
+q_table_section.pkl
+q_table_paths.pkl
