@@ -1,11 +1,13 @@
 """
+Title: Project03_RL
+Author: Garrett Zhou
+Version: 11/17
 renderer.py - all Pygame drawing lives here (kept separate from the RL logic).
 
-AI USE DISCLOSURE (Honor Code): Generated with help from Claude (Anthropic). v7 is the "pretty" renderer:
-everything is drawn in code (no image files needed). <-- Add your own notes here.
+AI USE DISCLOSURE: https://claude.ai/share/c3bb3a14-6477-4b27-9563-07eb366f5d20
 
-Nothing in this file changes how the game plays or how the agent learns, so you can restyle it freely.
-Fast-training mode (SPACE) only draws every few loops, so the graphics barely slow training down.
+Nothing here changes how the game plays or how the agent learns. Fast-training mode (SPACE)
+only draws every few loops so graphics barely slow training down.
 """
 import bisect
 import math
@@ -637,15 +639,38 @@ def draw(screen, font, env, info):
 # =====================================================================================
 #  HUD
 # =====================================================================================
+def _best_points_line(info):
+    """Compare the best real run to a fair ceiling.
+
+    No jackpots on that run  -> % of skill-only max (coins + fast finish).
+    N jackpots on that run   -> % of (skill-only max + N jackpots), so lucky boxes
+    do not read as "191% of the max".
+    """
+    best, skill_max = info.get("best_points", "-"), info.get("max_score")
+    if best in (None, "-") or not skill_max:
+        return f"Best points {best}"
+    best = int(best)
+    jackpot = int(info.get("box_jackpot", 1250))
+    box_pts = int(info.get("best_box_points", 0) or 0)
+    n_jackpots = box_pts // jackpot if jackpot else 0
+    compare_max = skill_max + n_jackpots * jackpot
+    pct = 100 * best / compare_max
+    if n_jackpots:
+        label = "jackpot" if n_jackpots == 1 else "jackpots"
+        return f"Best points {best} = {pct:.0f}% of max with {n_jackpots} {label}"
+    return f"Best points {best} = {pct:.0f}% of the max"
+
 def _draw_hud(screen, A, env, info):
     routes = info["routes"]
     mode = "FAST TRAIN" if info["fast"] else "WATCH"
     lines = [
+        f"Model: {info.get('model_label', 'With portals' if env.portals_enabled else 'No portals')}   (press M to switch)",
         f"Episode {info['episode']}   Epsilon {info['epsilon']:.2f}",
         f"Time {env.steps * env.DT:5.1f}s   Points {env.score}",
-        f"Coins {env.coins_collected}   Time bonus {int(env.time_points) if env.finished else '-'}",
+        f"Coins {env.coins_collected}   Box pts {env.box_points}   Time bonus {int(env.time_points) if env.finished else '-'}",
         f"Finishes {info['wins']}   Crashes {info['crashes']}   Best {info['best_time']}",
-        f"Best points {info.get('best_points', '-')}",
+        _best_points_line(info),
+        f"Max ~{info.get('max_score', '-')} (est.); {info.get('max_score_luck', '-')} if every box is a jackpot",
         f"Last: {info['last']}",
         f"Boosts {env.boosts_hit}   Jumps {env.jumps}   Rail bumps {env.rail_hits}",
         f"Boxes {env.boxes_opened} this run | {info.get('boxes_total', 0)} total | last: {env.last_box or '-'}",
@@ -654,12 +679,14 @@ def _draw_hud(screen, A, env, info):
         f"Mode: {mode}{' (GREEDY)' if info['greedy'] else ''}   Random starts: "
         f"{'ON' if info['random_starts'] else 'OFF'}{'' if env.from_start else ' [practice]'}",
     ]
-    left_h = 14 + len(lines) * 20 + 22
+    # Extra footer space so the controls line stays inside the panel (not on the border).
+    footer_h = 32
+    left_h = 18 + len(lines) * 20 + footer_h
     screen.blit(_panel(536, left_h), (8, 8))
     for i, text in enumerate(lines):
-        _text(screen, A["f_norm"], text, (240, 244, 250), (20, 16 + i * 20))
-    _text(screen, A["f_small"], "SPACE fast  G greedy  R random  P portal  H hide  S save  ESC", (150, 165, 190),
-          (20, 16 + len(lines) * 20 + 2), shadow=False)
+        _text(screen, A["f_norm"], text, (240, 244, 250), (24, 18 + i * 20))
+    _text(screen, A["f_small"], "SPACE fast  G greedy  R random  M model  P show portal  H hide  S save  ESC",
+          (150, 165, 190), (24, 18 + len(lines) * 20 + 6), shadow=False)
 
     # right gauge panel: speed, nitro bar, active effects
     gx = 554

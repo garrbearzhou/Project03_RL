@@ -1,10 +1,11 @@
 """
+Title: Project03_RL
+Author: Garrett Zhou
+Version: 11/17
 track.py - the road network: paths (with forks and gaps), coins, boost pads, ramps, walls,
 rails, mystery boxes, terrain zones, and the hidden portal.
 
-AI USE DISCLOSURE (Honor Code): Generated with help from Claude (Anthropic) as part of
-the v4-v6 upgrades (longer track, forks, boost pads, walls, jumps, mystery boxes, terrain).
-<-- Add your own notes here.
+AI USE DISCLOSURE: https://claude.ai/share/c3bb3a14-6477-4b27-9563-07eb366f5d20
 
 HOW TO EDIT THE TRACK: each Path is a list of control points (y, x). The road smoothly
 eases from one point to the next (like an S-curve). Two paths that start and end at the
@@ -52,6 +53,20 @@ class Path:
     def angle(self, y):
         """Direction the road points at y (0 = straight ahead, + = to the right)."""
         return self._ang[self._i(y)]
+
+    def curvature_ahead(self, y, horizon=500):
+        """Max |d(heading)/dy| over the next `horizon` px (0 on a straight)."""
+        i0 = self._i(y)
+        i1 = min(len(self._ang) - 1, i0 + int(horizon))
+        if i1 <= i0:
+            return 0.0
+        best = 0.0
+        ang = self._ang
+        for i in range(i0, i1):
+            d = abs(ang[i + 1] - ang[i])
+            if d > best:
+                best = d
+        return best
 
 
 class Coin:
@@ -152,10 +167,12 @@ class Portal:
 class Track:
     LENGTH = 12000                           # finish line distance
     SECTION_BINS = 8                         # 1500 px slices: early, middle, and late, not every 500 px
+    FORK_ZONE = (2400, 5700)                 # y-range where the Scenic / Shortcut fork exists
 
     ROUTE_Y = 3300                           # where we record which fork path the car chose
 
-    def __init__(self):
+    def __init__(self, only_route=None):
+        """Build the track. only_route="Scenic" or "Shortcut" removes the other fork (for route experiments)."""
         trunk1 = Path("Main road", [(0, 0), (600, 0), (900, 70), (1250, -70), (1600, 0), (2400, 0)], 200)
         scenic = Path("Scenic", [(2400, 0), (3100, -170), (3500, -240), (3900, -110), (4300, -240),
                                  (4600, -170), (5000, -170), (5700, 0)], 200)
@@ -264,8 +281,31 @@ class Track:
             Terrain(trunk3, 10320, 10740, "ice"),
             Terrain(trunk3, 11220, 11540, "mud"),
         ]
+
+        # Optional: keep only one fork path (and drop objects that lived on the other).
+        if only_route is not None:
+            if only_route not in self.fork_names:
+                raise ValueError(f"only_route must be one of {self.fork_names}, got {only_route!r}")
+            drop = "Shortcut" if only_route == "Scenic" else "Scenic"
+            self.paths = [p for p in self.paths if p.name != drop]
+            for attr in ("coins", "pads", "ramps", "boxes", "walls", "rails", "terrain", "portals"):
+                setattr(self, attr, [o for o in getattr(self, attr) if o.path.name != drop])
+            self.fork_names = (only_route,)
+
         for lst in (self.coins, self.pads, self.ramps, self.boxes, self.walls):
             lst.sort(key=lambda o: o.y)
+
+        # Parallel y-arrays for binary search in environment.py (must stay in sync with the lists).
+        self.coin_ys = [o.y for o in self.coins]
+        self.pad_ys = [o.y for o in self.pads]
+        self.ramp_ys = [o.y for o in self.ramps]
+        self.box_ys = [o.y for o in self.boxes]
+        self.wall_ys = [o.y for o in self.walls]
+        self.coin_len = max((o.length for o in self.coins), default=0)
+        self.pad_len = max((o.length for o in self.pads), default=0)
+        self.ramp_len = max((o.length for o in self.ramps), default=0)
+        self.box_len = max((o.length for o in self.boxes), default=0)
+        self.wall_thick = Wall.THICK
 
         # Which paths exist at each distance (precomputed so lookups are fast)
         self._active = [[p for p in self.paths if p.y0 <= y <= p.y1] for y in range(self.LENGTH + 1)]

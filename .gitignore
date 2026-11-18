@@ -12,6 +12,10 @@ venv/
 # macOS
 .DS_Store
 
+# Unrelated temp media (not part of the RL project)
+_tmp_gothic/
+_tmp_*/
+
 # Old Q-tables from earlier versions of the game (they no longer match the current state/actions).
 # KEEP q_table_items.pkl and q_table_items_noportal.pkl: the assignment asks for companion data files.
 q_table.pkl

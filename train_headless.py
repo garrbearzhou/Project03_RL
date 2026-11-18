@@ -1,7 +1,10 @@
 """
+Title: Project03_RL
+Author: Garrett Zhou
+Version: 11/17
 train_headless.py - train the agent WITHOUT a window (much faster than main.py).
 
-AI USE DISCLOSURE (Honor Code): Generated with help from Claude (Anthropic).
+AI USE DISCLOSURE: https://claude.ai/share/c3bb3a14-6477-4b27-9563-07eb366f5d20
 
 Usage:  python train_headless.py 40000        (number of episodes; default 30000)
         python train_headless.py 40000 7      (optional 2nd number = random seed, to repeat a run)
