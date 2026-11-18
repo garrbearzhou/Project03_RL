@@ -3,10 +3,29 @@ Garrett Zhou
 ADV CS III: Machine Learning and AI
 Project 03: Reinforcement Learning (PyGAIme)
 
-A Pygame racing game where a tabular Q-learning agent starts knowing nothing about the rules and improves by playing. The agent never reads the physics code. It only sees a small discrete state, chooses an action, and learns from rewards. The goal is to finish a long forked track for points (coins + time left at the finish − crash penalty + optional jackpot boxes).
+PygAIme Racer is a custom Pygame racing game built around reinforcement learning. At the start of training the agent has an empty Q-table: it does not know that walls hurt, that coins are good, that nitro can throw it off a curve, or that a hidden portal even exists. It only receives a small discrete state, chooses among 8 actions, and updates from a reward after every simulation step. Over thousands of episodes it learns a policy that can finish a long, forked track and score points competitively.
+
+The track is much richer than a typical classroom Snake/Brick tutorial. It includes:
+
+A Scenic vs Shortcut fork, a grass gap that must be jumped, moving/static walls, guard rails, boost pads, jump ramps, ice / mud / mountain terrain, mystery boxes (including rare jackpots), and optional hidden portals
+An official points objective: coins × 25 + jackpot points + unused time if you finish − 100 for a crash (so finishing fast usually beats collecting every coin)
+A separate learning reward with small shaping signals (forward progress, danger, rails) so a ~12,000 px track is actually learnable with tabular Q-learning
+
+There are two trained “models” (separate Q-tables): With portals and No portals. The Pygame UI lets you choose which model to load, then whether to run in Greedy (demo) mode (no learning — safe to show in class) or Train mode (updates the table). Serious training is done faster with train_headless.py, which periodically evaluates greedy start-line races and keeps the best average-points checkpoint because Q-learning on a hard track can get worse again after a good peak.
+
+The project also includes tests.py (automated checks of rules and learning), scoring.py (an optimistic maximum possible score for the HUD), and ITERATIONS.md (a log of design experiments — including ideas that failed, like learning-rate decay or over-strong danger penalties).
+
 
 ### Project Objective
-Build a reinforcement-learning game (not a copy of Snake / Brick Breaker) that:
+Use Python + Pygame to implement a full reinforcement-learning game pipeline that:
+
+- Starts with an empty Q-table (no built-in knowledge of the rules)
+- Improves over training episodes with tabular Q-learning and an ε-greedy policy
+- Uses a carefully designed state space (road-relative offset, heading, speed, bend/danger, track section, nearby objects, extras) and a reward aligned with the real score
+- Lets you watch or train in a Pygame UI, including With portals vs No portals
+- Supports fast headless training, automated tests, and a documented score ceiling so results are comparable
+- Goes beyond standard tutorials with forks, nitro, terrain, boxes, portals, and an iteration log of what was tuned
+
 
 ## Starts with an empty Q-table (no built-in knowledge of the rules)
 Improves over training episodes with tabular Q-learning and an ε-greedy policy
